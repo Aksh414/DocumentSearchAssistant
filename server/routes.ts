@@ -195,12 +195,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
                              .map(chunk => chunk.chunkText)
                              .join("\n\n");
       
-      const summary = await generateSummary(fullText, length);
-      const keyPoints = await extractKeyPoints(fullText);
+      // Generate summary and key points concurrently
+      const [summary, keyPoints] = await Promise.all([
+        generateSummary(fullText, length),
+        extractKeyPoints(fullText)
+      ]);
       
-      res.json({ summary, keyPoints });
+      // If the summary contains the API quota exceeded message, let the client know
+      const apiLimitExceeded = summary.includes("API Quota Exceeded") || 
+                              keyPoints.some(point => point.includes("API Quota Exceeded"));
+      
+      res.json({ 
+        summary, 
+        keyPoints,
+        apiLimitExceeded
+      });
     } catch (error) {
       console.error("Summarization error:", error);
+      // Send a more specific error message when possible
+      if (error instanceof Error) {
+        const message = error.message.includes("quota") ? 
+          "API quota exceeded. Using fallback summarization." : 
+          "Error generating summary";
+        
+        return res.status(500).json({ 
+          message,
+          apiLimitExceeded: error.message.includes("quota")
+        });
+      }
+      
       res.status(500).json({ message: "Error generating summary" });
     }
   });
@@ -290,9 +313,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate answer
       const answer = await generateAnswer(query, topChunks);
       
-      res.json({ answer, sourceCount: Math.min(3, topChunks.length) });
+      // Check if the answer indicates API quota exceeded
+      const apiLimitExceeded = answer.includes("API Quota Exceeded");
+      
+      res.json({ 
+        answer, 
+        sourceCount: Math.min(3, topChunks.length),
+        apiLimitExceeded
+      });
     } catch (error) {
       console.error("Answer generation error:", error);
+      
+      // Send a more specific error message when possible
+      if (error instanceof Error) {
+        const message = error.message.includes("quota") ? 
+          "API quota exceeded. Using fallback answer generation." : 
+          "Error generating answer";
+        
+        return res.status(500).json({ 
+          message,
+          apiLimitExceeded: error.message.includes("quota"),
+          answer: "Unable to generate answer due to API limitations. Please try again later."
+        });
+      }
+      
       res.status(500).json({ message: "Error generating answer" });
     }
   });

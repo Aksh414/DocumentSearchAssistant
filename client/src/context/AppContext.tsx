@@ -15,6 +15,7 @@ interface AppContextType {
   documentSummary: DocumentSummary | null;
   summaryLength: "brief" | "medium" | "detailed";
   aiAnswer: string | null;
+  apiLimitExceeded: boolean;
   
   // Actions
   setSearchQuery: (query: string) => void;
@@ -52,6 +53,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [documentSummary, setDocumentSummary] = useState<DocumentSummary | null>(null);
   const [summaryLength, setSummaryLength] = useState<"brief" | "medium" | "detailed">("medium");
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [apiLimitExceeded, setApiLimitExceeded] = useState<boolean>(false);
   
   // Queries
   const { data: recentDocuments } = useQuery<Document[]>({ 
@@ -183,6 +185,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     documentSummary,
     summaryLength,
     aiAnswer,
+    apiLimitExceeded,
     
     setSearchQuery,
     search,

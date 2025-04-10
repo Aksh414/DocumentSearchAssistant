@@ -133,7 +133,7 @@ function splitIntoChunks(text: string, maxChunkSize: number = 1000): string[] {
  */
 export async function searchDocuments(query: string, userId: number) {
   try {
-    // Generate embedding for the query
+    // Generate embedding for the query (now has built-in fallback)
     const queryEmbedding = await generateEmbedding(query);
     
     // Search for relevant documents
@@ -142,27 +142,88 @@ export async function searchDocuments(query: string, userId: number) {
     // Get document details
     const documents = await Promise.all(
       searchResults.map(async (result) => {
-        const document = await storage.getDocument(result.documentId);
-        return {
-          ...document,
-          score: result.score
-        };
+        try {
+          const document = await storage.getDocument(result.documentId);
+          if (!document) return null;
+          
+          return {
+            ...document,
+            score: result.score,
+            // Add a snippet from the document content for display in search results
+            snippet: await getDocumentSnippet(document.id, query)
+          };
+        } catch (docError) {
+          console.error(`Error getting document ${result.documentId}:`, docError);
+          return null;
+        }
       })
     );
     
-    // Filter out undefined documents and sort by score
-    const validDocuments = documents.filter(Boolean).sort((a, b) => b.score - a.score);
+    // Filter out null/undefined documents and sort by score
+    const validDocuments = documents.filter((doc): doc is NonNullable<typeof doc> => doc !== null && doc !== undefined)
+      .sort((a, b) => (b.score || 0) - (a.score || 0));
     
-    // Store search history
-    await storage.createSearchHistory({
-      userId,
-      query,
-      results: validDocuments.map(doc => doc!.id)
-    });
+    try {
+      // Store search history - but don't let failures here affect the search results
+      await storage.createSearchHistory({
+        userId,
+        query,
+        results: validDocuments.map(doc => doc!.id)
+      });
+    } catch (historyError) {
+      console.error("Error storing search history:", historyError);
+      // Continue anyway - search history is non-critical
+    }
     
     return validDocuments;
   } catch (error) {
     console.error("Error searching documents:", error);
-    throw error;
+    
+    // Return empty results rather than failing completely
+    return [];
+  }
+}
+
+/**
+ * Get a relevant snippet from a document that matches the query
+ */
+async function getDocumentSnippet(documentId: number, query: string): Promise<string> {
+  try {
+    // Get document chunks
+    const chunks = await storage.getChunksByDocument(documentId);
+    if (!chunks || chunks.length === 0) {
+      return "No preview available";
+    }
+    
+    // Simple relevance scoring - find the chunk with the most query terms
+    const queryTerms = query.toLowerCase().split(/\W+/).filter(t => t.length > 2);
+    let bestChunk = chunks[0];
+    let bestScore = 0;
+    
+    for (const chunk of chunks) {
+      const chunkText = chunk.chunkText.toLowerCase();
+      let score = 0;
+      
+      for (const term of queryTerms) {
+        if (chunkText.includes(term)) {
+          score++;
+        }
+      }
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestChunk = chunk;
+      }
+    }
+    
+    // Return the best chunk text (or a portion of it if it's very long)
+    const text = bestChunk.chunkText;
+    if (text.length > 200) {
+      return text.substring(0, 197) + '...';
+    }
+    return text;
+  } catch (error) {
+    console.error("Error getting document snippet:", error);
+    return "Preview unavailable";
   }
 }
