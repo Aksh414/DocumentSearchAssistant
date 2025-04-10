@@ -40,15 +40,23 @@ export async function processDocument(
     const chunks = splitIntoChunks(documentData.content);
     
     // Create and store chunks with embeddings
-    for (let i = 0; i < chunks.length; i++) {
-      const embedding = await generateEmbedding(chunks[i]);
-      
-      await storage.createChunk({
-        documentId: document.id,
-        chunkIndex: i,
-        chunkText: chunks[i],
-        embedding
-      });
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        // Generate embedding (now has built-in fallback)
+        const embedding = await generateEmbedding(chunks[i]);
+        
+        await storage.createChunk({
+          documentId: document.id,
+          chunkIndex: i,
+          chunkText: chunks[i],
+          embedding
+        });
+      }
+    } catch (embeddingError) {
+      // If there's an error during embedding, log it but continue
+      // We still want to save the document even if embeddings fail
+      console.error("Error generating embeddings:", embeddingError);
+      console.log("Document saved but embeddings may be incomplete.");
     }
     
     return document.id;
