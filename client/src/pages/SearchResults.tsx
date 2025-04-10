@@ -12,7 +12,8 @@ const SearchResults: React.FC = () => {
     isSearching, 
     search, 
     openDocumentViewer,
-    aiAnswer 
+    aiAnswer,
+    apiLimitExceeded
   } = useApp();
   
   const [selectedFileType, setSelectedFileType] = useState<string>("all");
@@ -94,17 +95,43 @@ const SearchResults: React.FC = () => {
         {/* Results Content */}
         {!isSearching && (
           <div className="p-6 max-w-5xl mx-auto">
+            {/* API Limit Warning */}
+            {apiLimitExceeded && (
+              <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-5">
+                <div className="flex items-start mb-3">
+                  <span className="material-icons text-amber-600 mr-2">warning</span>
+                  <h3 className="text-lg font-medium text-gray-800">AI Service Limited</h3>
+                </div>
+                
+                <div className="text-gray-700">
+                  <p className="mb-3">
+                    The OpenAI API quota has been exceeded. The app is currently using fallback mechanisms for search, 
+                    summarization, and answer generation. Results may be less accurate or comprehensive.
+                  </p>
+                  <p className="text-sm text-gray-500 mt-4">
+                    This is a temporary limitation. Basic search functionality will continue to work.
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {/* AI Generated Answer */}
             {aiAnswer && (
               <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-5">
                 <div className="flex items-start mb-3">
                   <span className="material-icons text-blue-600 mr-2">auto_awesome</span>
                   <h3 className="text-lg font-medium text-gray-800">AI-Generated Answer</h3>
+                  {apiLimitExceeded && (
+                    <span className="ml-3 px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">Limited Mode</span>
+                  )}
                 </div>
                 
                 <div className="text-gray-700">
                   <p className="mb-3">{aiAnswer}</p>
-                  <p className="text-sm text-gray-500 mt-4">This answer was generated from documents in your collection.</p>
+                  <p className="text-sm text-gray-500 mt-4">
+                    This answer was generated from documents in your collection.
+                    {apiLimitExceeded && " Using simplified analysis due to API limitations."}
+                  </p>
                 </div>
               </div>
             )}

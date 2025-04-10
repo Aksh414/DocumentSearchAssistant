@@ -10,7 +10,8 @@ const DocumentViewerModal: React.FC = () => {
     selectedDocument, 
     documentSummary,
     summaryLength,
-    setSummaryLength
+    setSummaryLength,
+    apiLimitExceeded
   } = useApp();
   
   if (!selectedDocument) {
@@ -101,7 +102,13 @@ const DocumentViewerModal: React.FC = () => {
               {/* Document Summary */}
               <div className="p-4 border-b border-gray-200 flex-1 overflow-auto">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-800">Summary</h4>
+                  <div className="flex items-center">
+                    <h4 className="font-medium text-gray-800">Summary</h4>
+                    {apiLimitExceeded && (
+                      <span className="ml-2 px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full">Limited Mode</span>
+                    )}
+                  </div>
+                  
                   <div className="flex items-center">
                     <span className="text-xs text-gray-500 mr-2">Length:</span>
                     <select 
@@ -115,6 +122,16 @@ const DocumentViewerModal: React.FC = () => {
                     </select>
                   </div>
                 </div>
+                
+                {apiLimitExceeded && (
+                  <div className="mb-4 py-2 px-3 bg-amber-50 border border-amber-100 rounded-md text-xs text-amber-800">
+                    <div className="flex items-center mb-1">
+                      <span className="material-icons text-amber-600 mr-1 text-sm">info</span>
+                      <span className="font-medium">AI Service Limited</span>
+                    </div>
+                    <p>Using simplified summarization due to API limits. Results may be less precise.</p>
+                  </div>
+                )}
                 
                 {documentSummary ? (
                   <>

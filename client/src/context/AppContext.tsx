@@ -110,7 +110,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     },
     onSuccess: (data) => {
       setDocumentSummary(data);
+      // Check if the API limit was exceeded during summarization
+      if (data.apiLimitExceeded) {
+        setApiLimitExceeded(true);
+      }
     },
+    onError: (error: any) => {
+      // Check for API limit exceeded error in the error response
+      if (error?.message?.includes('quota') || 
+          error?.response?.data?.apiLimitExceeded) {
+        setApiLimitExceeded(true);
+      }
+    }
   });
   
   const answerMutation = useMutation({
@@ -120,7 +131,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     },
     onSuccess: (data) => {
       setAiAnswer(data.answer);
+      // Check if the API limit was exceeded during answer generation
+      if (data.apiLimitExceeded) {
+        setApiLimitExceeded(true);
+      }
     },
+    onError: (error: any) => {
+      // Check for API limit exceeded error in the error response
+      if (error?.message?.includes('quota') || 
+          error?.response?.data?.apiLimitExceeded) {
+        setApiLimitExceeded(true);
+      }
+    }
   });
   
   // Action handlers
@@ -129,12 +151,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     setIsSearching(true);
     setAiAnswer(null);
+    // Reset API limit exceeded flag at the start of a new search
+    setApiLimitExceeded(false);
     
     try {
       await searchMutation.mutateAsync(searchQuery);
       await generateAnswer(searchQuery);
     } catch (error) {
       console.error("Search error:", error);
+      // Check if the error is related to API quota
+      if (error instanceof Error && error.message.includes('quota')) {
+        setApiLimitExceeded(true);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -160,10 +188,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
   
   const summarizeDocument = async (documentId: number) => {
+    // Reset API limit exceeded flag at the start of a new summarization
+    setApiLimitExceeded(false);
     await summarizeMutation.mutateAsync({ documentId, length: summaryLength });
   };
   
   const generateAnswer = async (query: string, documentIds?: number[]) => {
+    // Reset API limit exceeded flag at the start of a new answer generation
+    // We don't reset here during search operation as it's already reset in the search method
+    if (!isSearching) {
+      setApiLimitExceeded(false);
+    }
     await answerMutation.mutateAsync({ query, documentIds });
   };
   
