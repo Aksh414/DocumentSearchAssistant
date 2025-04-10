@@ -84,10 +84,12 @@ const UploadModal: React.FC = () => {
     else return (bytes / 1048576).toFixed(1) + ' MB';
   };
   
+  // Don't render anything if modal is not open
   if (!isUploadModalOpen) {
     return null;
   }
   
+  // Otherwise render the modal
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-gray-600 bg-opacity-50 flex">
       <div className="relative p-4 bg-white rounded-lg shadow-xl max-w-2xl w-full mx-auto my-20 flex flex-col overflow-hidden">
