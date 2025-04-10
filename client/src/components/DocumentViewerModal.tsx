@@ -11,7 +11,10 @@ const DocumentViewerModal: React.FC = () => {
     documentSummary,
     summaryLength,
     setSummaryLength,
-    apiLimitExceeded
+    apiLimitExceeded,
+    relatedDocuments,
+    loadingRelatedDocuments,
+    openDocumentViewer
   } = useApp();
   
   if (!selectedDocument) {
@@ -158,27 +161,37 @@ const DocumentViewerModal: React.FC = () => {
               
               {/* Related Documents */}
               <div className="p-4">
-                <h4 className="font-medium text-gray-800 mb-3">Related Documents</h4>
-                <ul className="space-y-3">
-                  <li>
-                    <a href="#" className="flex items-center text-sm hover:bg-gray-50 p-2 rounded">
-                      <span className="material-icons text-gray-400 text-sm mr-2">description</span>
-                      <span className="text-gray-700">Technical Requirements.pdf</span>
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="flex items-center text-sm hover:bg-gray-50 p-2 rounded">
-                      <span className="material-icons text-gray-400 text-sm mr-2">description</span>
-                      <span className="text-gray-700">AI Implementation Strategy.docx</span>
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="flex items-center text-sm hover:bg-gray-50 p-2 rounded">
-                      <span className="material-icons text-gray-400 text-sm mr-2">description</span>
-                      <span className="text-gray-700">Budget Estimation.pdf</span>
-                    </a>
-                  </li>
-                </ul>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-gray-800">Related Documents</h4>
+                  {apiLimitExceeded && (
+                    <span className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full">Limited Mode</span>
+                  )}
+                </div>
+                
+                {loadingRelatedDocuments ? (
+                  <div className="flex flex-col items-center justify-center h-24 text-gray-400">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary-600 mb-2"></div>
+                    <p className="text-xs">Finding related content...</p>
+                  </div>
+                ) : relatedDocuments.length > 0 ? (
+                  <ul className="space-y-3">
+                    {relatedDocuments.map(doc => (
+                      <li key={doc.id}>
+                        <button 
+                          onClick={() => openDocumentViewer(doc)}
+                          className="flex items-center text-sm hover:bg-gray-50 p-2 rounded w-full text-left"
+                        >
+                          <span className="material-icons text-gray-400 text-sm mr-2">description</span>
+                          <span className="text-gray-700">{doc.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-center text-gray-500 py-4 text-sm">
+                    <p>No related documents found</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

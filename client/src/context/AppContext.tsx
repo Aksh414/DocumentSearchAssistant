@@ -57,6 +57,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [summaryLength, setSummaryLength] = useState<"brief" | "medium" | "detailed">("medium");
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
   const [apiLimitExceeded, setApiLimitExceeded] = useState<boolean>(false);
+  const [relatedDocuments, setRelatedDocuments] = useState<Document[]>([]);
+  const [loadingRelatedDocuments, setLoadingRelatedDocuments] = useState<boolean>(false);
   
   // Queries
   const { data: recentDocuments } = useQuery<Document[]>({ 
@@ -178,6 +180,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedDocument(document);
     setIsDocumentViewerOpen(true);
     summarizeDocument(document.id);
+    fetchRelatedDocuments(document.id);
   };
   
   const closeDocumentViewer = () => {
@@ -205,6 +208,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await answerMutation.mutateAsync({ query, documentIds });
   };
   
+  const fetchRelatedDocuments = async (documentId: number) => {
+    setLoadingRelatedDocuments(true);
+    setRelatedDocuments([]);
+    
+    try {
+      const response = await apiRequest("GET", `/api/documents/${documentId}/related`);
+      const data = await response.json();
+      setRelatedDocuments(data);
+    } catch (error) {
+      console.error("Error fetching related documents:", error);
+      setRelatedDocuments([]);
+    } finally {
+      setLoadingRelatedDocuments(false);
+    }
+  };
+  
   // If the summary length changes and we have a selected document, regenerate the summary
   useEffect(() => {
     if (selectedDocument && isDocumentViewerOpen) {
@@ -224,6 +243,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     summaryLength,
     aiAnswer,
     apiLimitExceeded,
+    relatedDocuments,
+    loadingRelatedDocuments,
     
     setSearchQuery,
     search,
@@ -236,6 +257,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     summarizeDocument,
     setSummaryLength,
     generateAnswer,
+    fetchRelatedDocuments,
   };
   
   return (
