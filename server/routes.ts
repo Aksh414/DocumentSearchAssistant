@@ -7,7 +7,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { processDocument, searchDocuments } from "./services/documentProcessor";
-import { generateSummary, extractKeyPoints, generateAnswer, generateEmbedding } from "./services/openai";
+import { generateSummary, extractKeyPoints, generateAnswer, generateEmbedding, calculateCosineSimilarity } from "./services/generateAI";
 
 // Set up file upload with multer
 const uploadDir = path.join(process.cwd(), "uploads");

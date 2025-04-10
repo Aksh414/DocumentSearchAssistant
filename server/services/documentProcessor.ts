@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { storage } from '../storage';
-import { generateEmbedding } from './openai';
+import { generateEmbedding } from './generateAI';
 import { InsertDocument, InsertChunk } from '@shared/schema';
 
 interface DocumentData {
