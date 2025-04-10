@@ -3,6 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "../lib/queryClient";
 import { Document, SearchHistory, SearchResult, User, DocumentSummary } from "../types";
 
+interface SearchFilters {
+  fileType: string[];
+  dateRange: string;
+  sortBy: 'relevance' | 'date';
+}
+
 interface AppContextType {
   // State
   user: User | null;
@@ -18,6 +24,7 @@ interface AppContextType {
   apiLimitExceeded: boolean;
   relatedDocuments: Document[];
   loadingRelatedDocuments: boolean;
+  searchFilters: SearchFilters;
   
   // Actions
   setSearchQuery: (query: string) => void;
@@ -32,6 +39,7 @@ interface AppContextType {
   setSummaryLength: (length: "brief" | "medium" | "detailed") => void;
   generateAnswer: (query: string, documentIds?: number[]) => Promise<void>;
   fetchRelatedDocuments: (documentId: number) => Promise<void>;
+  updateSearchFilters: (filters: Partial<SearchFilters>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -59,6 +67,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [apiLimitExceeded, setApiLimitExceeded] = useState<boolean>(false);
   const [relatedDocuments, setRelatedDocuments] = useState<Document[]>([]);
   const [loadingRelatedDocuments, setLoadingRelatedDocuments] = useState<boolean>(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    fileType: [],
+    dateRange: 'any',
+    sortBy: 'relevance'
+  });
   
   // Queries
   const { data: recentDocuments } = useQuery<Document[]>({ 
@@ -224,6 +237,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
   
+  const updateSearchFilters = (filters: Partial<SearchFilters>) => {
+    setSearchFilters(prev => ({
+      ...prev,
+      ...filters
+    }));
+  };
+  
   // If the summary length changes and we have a selected document, regenerate the summary
   useEffect(() => {
     if (selectedDocument && isDocumentViewerOpen) {
@@ -245,6 +265,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     apiLimitExceeded,
     relatedDocuments,
     loadingRelatedDocuments,
+    searchFilters,
     
     setSearchQuery,
     search,
@@ -258,6 +279,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSummaryLength,
     generateAnswer,
     fetchRelatedDocuments,
+    updateSearchFilters,
   };
   
   return (

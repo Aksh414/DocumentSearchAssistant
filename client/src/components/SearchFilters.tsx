@@ -1,14 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useLocation } from 'wouter';
 
 interface SearchFiltersProps {
   isOpen: boolean;
 }
 
 const SearchFilters: React.FC<SearchFiltersProps> = ({ isOpen }) => {
-  const [dateFilter, setDateFilter] = useState<string>('any');
-  const [fileTypeFilter, setFileTypeFilter] = useState<string[]>([]);
-  const [sortOrder, setSortOrder] = useState<string>('relevance');
+  const { searchFilters, updateSearchFilters, search } = useApp();
+  const [, setLocation] = useLocation();
+  
+  const [localFileType, setLocalFileType] = useState<string[]>(searchFilters.fileType);
+  const [localDateRange, setLocalDateRange] = useState<string>(searchFilters.dateRange);
+  const [localSortBy, setLocalSortBy] = useState<'relevance' | 'date'>(searchFilters.sortBy);
+
+  // Update local state when context filters change
+  useEffect(() => {
+    setLocalFileType(searchFilters.fileType);
+    setLocalDateRange(searchFilters.dateRange);
+    setLocalSortBy(searchFilters.sortBy);
+  }, [searchFilters]);
 
   // File type options
   const fileTypes = [
@@ -30,7 +41,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({ isOpen }) => {
 
   // Toggle file type selection
   const toggleFileType = (fileType: string) => {
-    setFileTypeFilter(prev => 
+    setLocalFileType(prev => 
       prev.includes(fileType)
         ? prev.filter(type => type !== fileType)
         : [...prev, fileType]
@@ -39,21 +50,21 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({ isOpen }) => {
 
   // Reset filters
   const resetFilters = () => {
-    setDateFilter('any');
-    setFileTypeFilter([]);
-    setSortOrder('relevance');
+    setLocalDateRange('any');
+    setLocalFileType([]);
+    setLocalSortBy('relevance');
   };
 
   // Apply filters
   const applyFilters = () => {
-    // In a real application, this would dispatch the filters to the search state
-    console.log('Applying filters:', {
-      dateFilter,
-      fileTypeFilter,
-      sortOrder
+    updateSearchFilters({
+      fileType: localFileType,
+      dateRange: localDateRange,
+      sortBy: localSortBy
     });
     
-    // For MVP, this feature is UI-only
+    search();
+    setLocation('/search');
   };
 
   if (!isOpen) return null;
@@ -70,8 +81,8 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({ isOpen }) => {
                 type="radio"
                 name="date-filter"
                 value={option.id}
-                checked={dateFilter === option.id}
-                onChange={() => setDateFilter(option.id)}
+                checked={localDateRange === option.id}
+                onChange={() => setLocalDateRange(option.id)}
                 className="h-4 w-4 text-primary-600 border-gray-300"
               />
               <label htmlFor={`date-${option.id}`} className="ml-2 text-sm text-gray-700">
@@ -90,7 +101,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({ isOpen }) => {
               <input
                 id={`filetype-${type.id}`}
                 type="checkbox"
-                checked={fileTypeFilter.includes(type.id)}
+                checked={localFileType.includes(type.id)}
                 onChange={() => toggleFileType(type.id)}
                 className="h-4 w-4 text-primary-600 rounded border-gray-300"
               />
@@ -111,8 +122,8 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({ isOpen }) => {
               type="radio"
               name="sort-order"
               value="relevance"
-              checked={sortOrder === 'relevance'}
-              onChange={() => setSortOrder('relevance')}
+              checked={localSortBy === 'relevance'}
+              onChange={() => setLocalSortBy('relevance')}
               className="h-4 w-4 text-primary-600 border-gray-300"
             />
             <label htmlFor="sort-relevance" className="ml-2 text-sm text-gray-700">
@@ -125,8 +136,8 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({ isOpen }) => {
               type="radio"
               name="sort-order"
               value="date"
-              checked={sortOrder === 'date'}
-              onChange={() => setSortOrder('date')}
+              checked={localSortBy === 'date'}
+              onChange={() => setLocalSortBy('date')}
               className="h-4 w-4 text-primary-600 border-gray-300"
             />
             <label htmlFor="sort-date" className="ml-2 text-sm text-gray-700">
