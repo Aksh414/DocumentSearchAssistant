@@ -142,6 +142,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+  
+  app.get("/api/documents/:id/related", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 3;
+      
+      const relatedDocuments = await storage.findRelatedDocuments(id, limit);
+      res.json(relatedDocuments);
+    } catch (error) {
+      console.error("Error finding related documents:", error);
+      res.status(500).json({ message: "Error finding related documents" });
+    }
+  });
 
   // Search routes
   app.post("/api/search", async (req, res) => {

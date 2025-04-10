@@ -16,6 +16,8 @@ interface AppContextType {
   summaryLength: "brief" | "medium" | "detailed";
   aiAnswer: string | null;
   apiLimitExceeded: boolean;
+  relatedDocuments: Document[];
+  loadingRelatedDocuments: boolean;
   
   // Actions
   setSearchQuery: (query: string) => void;
@@ -29,6 +31,7 @@ interface AppContextType {
   summarizeDocument: (documentId: number) => Promise<void>;
   setSummaryLength: (length: "brief" | "medium" | "detailed") => void;
   generateAnswer: (query: string, documentIds?: number[]) => Promise<void>;
+  fetchRelatedDocuments: (documentId: number) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

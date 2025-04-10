@@ -37,6 +37,9 @@ export interface IStorage {
   
   // Vector search
   searchDocuments(embedding: number[], limit?: number): Promise<{documentId: number, score: number}[]>;
+  
+  // Related documents
+  findRelatedDocuments(documentId: number, limit?: number): Promise<Document[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -172,6 +175,71 @@ export class MemStorage implements IStorage {
       });
     
     return Array.from(uniqueResults.values()).slice(0, limit);
+  }
+
+  // Related document finder
+  async findRelatedDocuments(documentId: number, limit: number = 3): Promise<Document[]> {
+    try {
+      // Get the document
+      const document = await this.getDocument(documentId);
+      if (!document) {
+        return [];
+      }
+      
+      // Get document chunks
+      const chunks = await this.getChunksByDocument(documentId);
+      if (!chunks || chunks.length === 0) {
+        return [];
+      }
+      
+      // Combine chunk embeddings into a single document embedding by averaging
+      const documentEmbedding: number[] = [];
+      let validChunksCount = 0;
+      
+      for (const chunk of chunks) {
+        if (chunk.embedding && chunk.embedding.length > 0) {
+          if (documentEmbedding.length === 0) {
+            // Initialize with the first chunk's embedding dimensions
+            for (let i = 0; i < chunk.embedding.length; i++) {
+              documentEmbedding.push(0);
+            }
+          }
+          
+          // Add each dimension
+          for (let i = 0; i < chunk.embedding.length; i++) {
+            documentEmbedding[i] += chunk.embedding[i];
+          }
+          validChunksCount++;
+        }
+      }
+      
+      // If we couldn't get valid embeddings, return empty array
+      if (validChunksCount === 0) {
+        return [];
+      }
+      
+      // Calculate the average
+      for (let i = 0; i < documentEmbedding.length; i++) {
+        documentEmbedding[i] /= validChunksCount;
+      }
+      
+      // Search for similar documents
+      const results = await this.searchDocuments(documentEmbedding, limit + 1); // +1 to account for filtering out the original
+      
+      // Filter out the original document and get the actual documents
+      const relatedDocs = await Promise.all(
+        results
+          .filter(result => result.documentId !== documentId)
+          .slice(0, limit)
+          .map(result => this.getDocument(result.documentId))
+      );
+      
+      // Filter out any undefined results
+      return relatedDocs.filter((doc): doc is Document => doc !== undefined);
+    } catch (error) {
+      console.error("Error finding related documents:", error);
+      return [];
+    }
   }
 
   // Helper function to calculate cosine similarity
